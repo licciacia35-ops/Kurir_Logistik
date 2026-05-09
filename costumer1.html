@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lacak Paket - Minahasa Logistics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #2563eb; --success: #10b981; --dark: #0f172a; --bg: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; background: var(--bg); color: var(--dark); padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; }
+
+        /* Header & Search */
+        .search-card { background: white; padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; margin-bottom: 25px; }
+        .search-card h1 { font-weight: 800; font-size: 1.6rem; margin-bottom: 8px; color: var(--primary); }
+        .input-box { margin-top: 20px; }
+        input { width: 100%; padding: 16px; border: 2px solid #f1f5f9; border-radius: 16px; font-family: inherit; font-size: 1rem; box-sizing: border-box; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--primary); }
+        .btn-track { width: 100%; background: var(--dark); color: white; border: none; padding: 16px; border-radius: 16px; font-weight: 800; margin-top: 15px; cursor: pointer; }
+
+        /* Result Display */
+        .result-card { background: white; border-radius: 24px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); display: none; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .header-info { border-bottom: 2px solid #f8fafc; padding-bottom: 20px; margin-bottom: 25px; }
+        .resi-label { font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .resi-value { font-size: 1.4rem; font-weight: 800; color: var(--dark); display: block; }
+        .nama-value { font-size: 1rem; color: #64748b; font-weight: 600; margin-top: 4px; display: block; }
+
+        /* Stepper 4 Status */
+        .stepper { position: relative; padding-left: 35px; }
+        .stepper::before { content: ''; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 2px; background: #e2e8f0; }
+        
+        .step { position: relative; margin-bottom: 30px; }
+        .step::after { content: ''; position: absolute; left: -32px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; border: 4px solid white; box-shadow: 0 0 0 2px #f1f5f9; z-index: 2; }
+        
+        .step.done::after { background: var(--success); box-shadow: 0 0 0 2px var(--success); }
+        .step.active::after { background: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
+        
+        .step-content { opacity: 0.4; }
+        .step.active .step-content, .step.done .step-content { opacity: 1; }
+
+        .step-title { font-weight: 800; font-size: 0.95rem; display: block; }
+        .step-desc { font-size: 0.75rem; color: #94a3b8; }
+
+        /* Bukti TTD */
+        .proof-box { margin-top: 15px; padding: 12px; background: #f0fdf4; border-radius: 12px; border: 1px solid #dcfce7; }
+        .proof-img { width: 100%; max-width: 200px; height: auto; background: white; border-radius: 6px; margin-top: 8px; border: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="search-card">
+            <h1>Logistik Pro</h1>
+            <div class="input-box">
+                <input type="text" id="resiInput" placeholder="Masukkan Nomor Resi...">
+            </div>
+            <button class="btn-track" id="btnLacak">LACAK PAKET</button>
+        </div>
+
+        <div id="result" class="result-card">
+            <div class="header-info">
+                <span class="resi-label">Nomor Resi</span>
+                <span id="resResi" class="resi-value">-</span>
+                <span id="resNama" class="nama-value">-</span>
+            </div>
+
+            <div class="stepper">
+                <div id="step4" class="step">
+                    <div class="step-content">
+                        <span class="step-title">Paket Sudah Diterima</span>
+                        <span class="step-desc">Pesanan sampai di tangan penerima</span>
+                        <div id="proofArea" class="proof-box" style="display:none;">
+                            <small style="font-weight: 800; color: #166534;">BUKTI TTD:</small><br>
+                            <img id="sigImg" src="" class="proof-img">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="step3" class="step">
+                    <div class="step-content">
+                        <span class="step-title">Sedang Dalam Perjalanan</span>
+                        <span class="step-desc">Kurir sedang mengantar ke alamat tujuan</span>
+                    </div>
+                </div>
+
+                <div id="step2" class="step">
+                    <div class="step-content">
+                        <span class="step-title">Tiba di Kantor Minahasa</span>
+                        <span class="step-desc">Paket sedang dalam proses sortir</span>
+                    </div>
+                </div>
+
+                <div id="step1" class="step">
+                    <div class="step-content">
+                        <span class="step-title">Pesanan Didaftarkan</span>
+                        <span class="step-desc" id="resWaktu">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Firebase Module -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+       const firebaseConfig = {
+  apiKey: "AIzaSyC5XmW-D_WNkzHqUeoQCyWdnNOeb0pWAsk",
+  authDomain: "logistikminahasa-f8d91.firebaseapp.com",
+  databaseURL: "https://logistikminahasa-f8d91-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "logistikminahasa-f8d91",
+  storageBucket: "logistikminahasa-f8d91.firebasestorage.app",
+  messagingSenderId: "934591286644",
+  appId: "1:934591286644:web:abb20022e1b87cb1db3021",
+  measurementId: "G-GKJ75GW0K3"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        async function lacakPaket() {
+            const resiInput = document.getElementById('resiInput').value.trim();
+            if (!resiInput) return alert("Silahkan masukkan nomor resi!");
+
+            const dbRef = ref(db);
+            try {
+                const snapshot = await get(child(dbRef, `paket/${resiInput}`));
+                
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    displayResult(data);
+                } else {
+                    alert("Nomor resi tidak ditemukan di sistem!");
+                    document.getElementById('result').style.display = 'none';
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Terjadi kesalahan saat mengambil data.");
+            }
+        }
+
+        function displayResult(data) {
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('resResi').innerText = data.resi;
+            document.getElementById('resNama').innerText = "Penerima: " + data.nama;
+            document.getElementById('resWaktu').innerText = "Didaftarkan pada: " + (data.waktu || "-");
+
+            // Reset semua step ke kondisi awal
+            const steps = ['step1', 'step2', 'step3', 'step4'];
+            steps.forEach(s => document.getElementById(s).className = 'step');
+            document.getElementById('proofArea').style.display = 'none';
+
+            const status = data.status;
+
+            // Logika Visual Stepper
+            if (status === "Sudah Diterima") {
+                document.getElementById('step1').className = 'step done';
+                document.getElementById('step2').className = 'step done';
+                document.getElementById('step3').className = 'step done';
+                document.getElementById('step4').className = 'step active';
+                if(data.sig) {
+                    document.getElementById('proofArea').style.display = 'block';
+                    document.getElementById('sigImg').src = data.sig;
+                }
+            } 
+            else if (status === "Sedang Dalam Perjalanan") {
+                document.getElementById('step1').className = 'step done';
+                document.getElementById('step2').className = 'step done';
+                document.getElementById('step3').className = 'step active';
+            }
+            else if (status === "Paket Di Kantor") {
+                document.getElementById('step1').className = 'step done';
+                document.getElementById('step2').className = 'step active';
+            }
+            else {
+                document.getElementById('step1').className = 'step active';
+            }
+            
+            // Scroll ke hasil agar user langsung melihatnya
+            window.scrollTo({ top: document.getElementById('result').offsetTop - 20, behavior: 'smooth' });
+        }
+
+        // Jalankan fungsi saat tombol diklik
+        document.getElementById('btnLacak').onclick = lacakPaket;
+        
+        // Bisa juga jalankan saat tekan Enter
+        document.getElementById('resiInput').onkeypress = (e) => {
+            if (e.key === 'Enter') lacakPaket();
+        };
+
+    </script>
+</body>
+</html>
