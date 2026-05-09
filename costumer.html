@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lacak Paket - Minahasa Logistics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #2563eb; --success: #10b981; --dark: #0f172a; --bg: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; background: var(--bg); color: var(--dark); padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; }
+
+        /* Header & Search */
+        .search-card { background: white; padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; margin-bottom: 25px; }
+        .search-card h1 { font-weight: 800; font-size: 1.6rem; margin-bottom: 8px; color: var(--primary); }
+        .input-box { margin-top: 20px; }
+        input { width: 100%; padding: 16px; border: 2px solid #f1f5f9; border-radius: 16px; font-family: inherit; font-size: 1rem; box-sizing: border-box; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--primary); }
+        .btn-track { width: 100%; background: var(--dark); color: white; border: none; padding: 16px; border-radius: 16px; font-weight: 800; margin-top: 15px; cursor: pointer; }
+
+        /* Result Display */
+        .result-card { background: white; border-radius: 24px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); display: none; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .header-info { border-bottom: 2px solid #f8fafc; padding-bottom: 20px; margin-bottom: 25px; }
+        .resi-label { font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .resi-value { font-size: 1.4rem; font-weight: 800; color: var(--dark); display: block; }
+        .nama-value { font-size: 1rem; color: #64748b; font-weight: 600; margin-top: 4px; display: block; }
+
+        /* Stepper 4 Status */
+        .stepper { position: relative; padding-left: 35px; }
+        .stepper::before { content: ''; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 2px; background: #e2e8f0; }
+        
+        .step { position: relative; margin-bottom: 30px; }
+        .step::after { content: ''; position: absolute; left: -32px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; border: 4px solid white; box-shadow: 0 0 0 2px #f1f5f9; z-index: 2; }
+        
+        .step.done::after { background: var(--success); box-shadow: 0 0 0 2px var(--success); }
+        .step.active::after { background: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
+        
+        .step-content { opacity: 0.4; }
+        .step.active .step-content, .step.done .step-content { opacity: 1; }
+
+        .step-title { font-weight: 800; font-size: 0.95rem; display: block; }
+        .step-desc { font-size: 0.75rem; color: #94a3b8; }
+
+        /* Bukti TTD */
+        .proof-box { margin-top: 15px; padding: 12px; background: #f0fdf4; border-radius: 12px; border: 1px solid #dcfce7; }
+        .proof-img { width: 120px; height: 60px; object-fit: contain; background: white; border-radius: 6px; margin-top: 8px; border: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="search-card">
+            <h1>Logistik Pro</h1>
+            <div class="input-box">
+                <input type="text" id="resiInput" placeholder="Masukkan Nomor Resi...">
+            </div>
+            <button class="btn-track" onclick="lacak()">LACAK PAKET</button>
+        </div>
+
+        <div id="result" class="result-card">
+            <div class="header-info">
+                <span class="resi-label">Nomor Resi</span>
+                <span id="resResi" class="resi-value">-</span>
+                <span id="resNama" class="nama-value">-</span>
+            </div>
+
+            <div class="stepper">
+                <div id="step4" class="step">
+                    <div class="step-content">
+                        <span class="step-title">Paket Sudah Diterima</span>
+                        <span class="step-desc">Pesanan sampai di tangan penerima</span>
+                        <div id="proofArea" class="proof-box" style="display:none;">
+                            <small style="font-weight: 800; color: #166534;">BUKTI TTD:</small><br>
+                            <img id="sigImg" src="" class="proof-img">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="step3" class="step">
+                    <div class="step-content">
+                        <span class="step-title">Sedang Dalam Perjalanan</span>
+                        <span class="step-desc">Kurir sedang mengantar ke alamat tujuan</span>
+                    </div>
+                </div>
+
+                <div id="step2" class="step">
+                    <div class="step-content">
+                        <span class="step-title">Tiba di Kantor Minahasa</span>
+                        <span class="step-desc">Paket sedang dalam proses sortir</span>
+                    </div>
+                </div>
+
+                <div id="step1" class="step done">
+                    <div class="step-content">
+                        <span class="step-title">Pesanan Didaftarkan</span>
+                        <span class="step-desc" id="resWaktu">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function lacak() {
+            const input = document.getElementById('resiInput').value.trim();
+            const logs = JSON.parse(localStorage.getItem('delivery_logs')) || [];
+            const data = logs.find(p => p.resi.toLowerCase() === input.toLowerCase());
+
+            if (data) {
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('resResi').innerText = data.resi;
+                document.getElementById('resNama').innerText = "Penerima: " + data.nama;
+                document.getElementById('resWaktu').innerText = data.waktu;
+
+                // Reset Status
+                const steps = ['step1', 'step2', 'step3', 'step4'];
+                steps.forEach(s => document.getElementById(s).className = 'step');
+                document.getElementById('proofArea').style.display = 'none';
+
+                // Logika 4 Tahap Status
+                const status = data.status;
+
+                if (status === "Sudah Diterima") {
+                    document.getElementById('step1').className = 'step done';
+                    document.getElementById('step2').className = 'step done';
+                    document.getElementById('step3').className = 'step done';
+                    document.getElementById('step4').className = 'step active';
+                    if(data.sig) {
+                        document.getElementById('proofArea').style.display = 'block';
+                        document.getElementById('sigImg').src = data.sig;
+                    }
+                } 
+                else if (status === "Sedang Dalam Perjalanan") {
+                    document.getElementById('step1').className = 'step done';
+                    document.getElementById('step2').className = 'step done';
+                    document.getElementById('step3').className = 'step active';
+                }
+                else if (status === "Paket Di Kantor") {
+                    document.getElementById('step1').className = 'step done';
+                    document.getElementById('step2').className = 'step active';
+                }
+                else {
+                    document.getElementById('step1').className = 'step active';
+                }
+
+            } else {
+                alert("Resi tidak ditemukan!");
+                document.getElementById('result').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
