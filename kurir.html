@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kurir Panel - Update & TTD</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #f59e0b; --dark: #0f172a; --bg: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        #map { height: 35vh; width: 100%; z-index: 1; }
+
+        .content-area { flex: 1; overflow-y: auto; padding: 20px; background: white; border-radius: 30px 30px 0 0; margin-top: -30px; z-index: 100; box-shadow: 0 -10px 20px rgba(0,0,0,0.05); }
+        .handle { width: 40px; height: 5px; background: #e2e8f0; margin: 0 auto 15px; border-radius: 10px; }
+        
+        /* Card Update */
+        .update-card { background: #fffcf5; padding: 20px; border-radius: 20px; border: 2px solid var(--primary); margin-bottom: 25px; }
+        .update-card h3 { margin: 0 0 15px; font-size: 1rem; color: #b45309; font-weight: 800; }
+        
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        input, select { flex: 1; padding: 14px; border: 2px solid #f1f5f9; border-radius: 12px; font-family: inherit; font-size: 1rem; outline: none; }
+        input:focus { border-color: var(--primary); }
+        .btn-search { background: var(--dark); color: white; border: none; padding: 0 20px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+
+        /* Area Tanda Tangan */
+        .sig-container { margin-top: 15px; display: none; }
+        .sig-label { font-size: 0.75rem; font-weight: 800; color: #64748b; margin-bottom: 8px; display: block; }
+        #sig-canvas { border: 2px dashed #cbd5e1; border-radius: 15px; background: white; cursor: crosshair; touch-action: none; width: 100%; height: 150px; }
+        .sig-tools { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
+        
+        .btn-main { width: 100%; padding: 16px; background: var(--dark); color: white; border: none; border-radius: 15px; font-weight: 800; font-size: 1rem; cursor: pointer; margin-top: 20px; }
+        .btn-clear { background: none; border: none; color: #ef4444; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+
+        /* Tabel Tugas */
+        .task-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .task-table th { text-align: left; font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        .task-table td { padding: 12px 10px; border-bottom: 1px solid #f8fafc; font-size: 0.85rem; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.6rem; font-weight: 800; }
+        .st-jalan { background: #fff7ed; color: #9a3412; border: 1px solid #ffedd5; }
+        .st-diterima { background: #f0fdf4; color: #166534; }
+        .btn-select { background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div class="content-area">
+        <div class="handle"></div>
+
+        <div class="update-card">
+            <h3>📍 Update Status Pengiriman</h3>
+            
+            <div class="input-group">
+                <input type="text" id="resiInput" placeholder="Pilih Resi dari Tabel...">
+                <button class="btn-search" onclick="cariData()">CARI</button>
+            </div>
+
+            <div id="infoPaket" style="display:none; margin-bottom: 15px; padding: 10px; background: white; border-radius: 10px;">
+                <small style="color: #94a3b8; font-weight: 800;">PENERIMA:</small>
+                <div id="namaDisplay" style="font-weight: 800; color: var(--dark);"></div>
+            </div>
+
+            <select id="statusSelect" onchange="handleStatusChange()">
+                <option value="Didaftarkan">--- Pilih Status ---</option>
+                <option value="Sedang Dalam Perjalanan">🚚 Sedang Dalam Perjalanan</option>
+                <option value="Paket Di Kantor">🏢 Paket Di Kantor</option>
+                <option value="Sudah Diterima">✅ Sudah Diterima</option>
+            </select>
+
+            <div id="sigArea" class="sig-container">
+                <span class="sig-label">TANDA TANGAN PENERIMA:</span>
+                <canvas id="sig-canvas"></canvas>
+                <div class="sig-tools">
+                    <button class="btn-clear" onclick="hapusTTD()">HAPUS CORETAN</button>
+                </div>
+            </div>
+
+            <button class="btn-main" onclick="simpanUpdate()">UPDATE KE ADMIN & CUSTOMER</button>
+        </div>
+
+        <h3 style="font-size: 1rem; margin-bottom: 10px;">📋 Daftar Tugas Paket</h3>
+        <table class="task-table">
+            <thead>
+                <tr>
+                    <th>Resi</th>
+                    <th>Nama</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="taskBody"></tbody>
+        </table>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Inisialisasi Map
+        var map = L.map('map', {zoomControl: false}).setView([-1.2691, 116.8253], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        const canvas = document.getElementById('sig-canvas');
+        const ctx = canvas.getContext('2d');
+        let currentData = null;
+
+        // --- FUNGSI TANDA TANGAN (Touch & Mouse) ---
+        let drawing = false;
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+        function start(e) { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); e.preventDefault(); }
+        function move(e) { if(!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); }
+        function stop() { drawing = false; }
+
+        canvas.addEventListener('mousedown', start);
+        canvas.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', stop);
+        canvas.addEventListener('touchstart', start);
+        canvas.addEventListener('touchmove', move);
+        canvas.addEventListener('touchend', stop);
+
+        function hapusTTD() { ctx.clearRect(0,0,canvas.width,canvas.height); }
+
+        // --- FUNGSI LOGIKA ---
+        function renderTasks() {
+            const logs = JSON.parse(localStorage.getItem('delivery_logs')) || [];
+            const tbody = document.getElementById('taskBody');
+            tbody.innerHTML = logs.map(item => `
+                <tr>
+                    <td><strong>${item.resi}</strong></td>
+                    <td>${item.nama}</td>
+                    <td><span class="badge ${item.status === 'Sudah Diterima' ? 'st-diterima' : 'st-jalan'}">${item.status}</span></td>
+                    <td><button class="btn-select" onclick="pilihResi('${item.resi}')">Pilih</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function pilihResi(resi) {
+            document.getElementById('resiInput').value = resi;
+            cariData();
+        }
+
+        function cariData() {
+            const resi = document.getElementById('resiInput').value;
+            const logs = JSON.parse(localStorage.getItem('delivery_logs')) || [];
+            currentData = logs.find(p => p.resi === resi);
+            
+            if(currentData) {
+                document.getElementById('infoPaket').style.display = 'block';
+                document.getElementById('namaDisplay').innerText = currentData.nama;
+            } else {
+                alert("Resi tidak ditemukan!");
+            }
+        }
+
+        function handleStatusChange() {
+            const status = document.getElementById('statusSelect').value;
+            const sigArea = document.getElementById('sigArea');
+            if(status === 'Sudah Diterima') {
+                sigArea.style.display = 'block';
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.strokeStyle = "#000";
+            } else {
+                sigArea.style.display = 'none';
+            }
+        }
+
+        function simpanUpdate() {
+            if(!currentData) return alert("Pilih resi dulu!");
+            const newStatus = document.getElementById('statusSelect').value;
+            
+            let logs = JSON.parse(localStorage.getItem('delivery_logs')) || [];
+            const idx = logs.findIndex(p => p.resi === currentData.resi);
+            
+            logs[idx].status = newStatus;
+            logs[idx].waktu = new Date().toLocaleString();
+            
+            if(newStatus === 'Sudah Diterima') {
+                logs[idx].sig = canvas.toDataURL(); // Simpan Tanda Tangan
+            }
+
+            localStorage.setItem('delivery_logs', JSON.stringify(logs));
+            alert("Berhasil memperbarui paket #" + currentData.resi);
+            location.reload();
+        }
+
+        renderTasks();
+        setInterval(renderTasks, 3000);
+    </script>
+</body>
+</html>
